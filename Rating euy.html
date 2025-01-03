@@ -1,0 +1,475 @@
+<!--<!DOCTYPE html<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rating dan Kritik</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    body {
+      background: #f9f9f9;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1.ui.header {
+      margin-top: 20px;
+      color: #2c3e50;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    form.ui.form {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;#42445A
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: auto;
+    }
+
+    form.ui.form .field label {
+      font-weight: bold;
+      color: #34495e;
+    }
+
+    button.ui.button {
+      background: #3498db;
+      color: #fff;
+    }
+
+    button.ui.button:hover {
+      background: #2980b9;
+    }
+
+    .thank-you-message {
+      margin: 20px auto;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    .thank-you-message .ui.message {
+      background: #eafaf1;
+      color: #2c8b4c;
+    }
+
+    .ui.comments {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .ui.comment {
+      border-bottom: 1px solid #f1f1f1;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .ui.comment:last-child {
+      border-bottom: none;
+    }
+
+    .ui.comment .author {
+      color: #2c3e50;
+      font-weight: bold;
+    }
+
+    .ui.comment .metadata {
+      color: #95a5a6;
+      font-size: 0.9em;
+    }
+
+    .ui.comment .text {
+      color: #7f8c8d;
+      margin-top: 5px;
+    }
+  </style>
+  <script>
+    // Konfigurasi Firebase
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDNFt-KKG8MpkUDbJphzzY3Ypi1YEyY_FQ",
+  authDomain: "starapp-5a7fc.firebaseapp.com",
+  databaseURL: "https://starapp-5a7fc-default-rtdb.firebaseio.com",
+  projectId: "starapp-5a7fc",
+  storageBucket: "starapp-5a7fc.firebasestorage.app",
+  messagingSenderId: "87823661297",
+  appId: "1:87823661297:web:ac859da096be644f3e1150",
+  measurementId: "G-3HVG82QSZV"
+};
+
+    // Inisialisasi Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database(app);
+    const ratingRef = firebase.database().ref("ratings");
+
+    $(document).ready(function () {
+      let sudahMengisi = false;
+
+      // Fungsi untuk mengirim data ke Firebase
+      $("#submitBtn").click(function (e) {
+        e.preventDefault();
+
+        if (sudahMengisi) {
+          alert("Anda sudah memberikan rating, kritik, dan saran!");
+          return;
+        }
+
+        const nama = $("#nama").val().trim();
+        const kritikSaran = $("#kritikSaran").val().trim();
+        const rating = $("#rating").rating("get rating");
+
+        if (!nama || !kritikSaran || !rating) {
+          alert("Harap lengkapi semua kolom!");
+          return;
+        }
+
+        // Simpan data ke Firebase
+        ratingRef.push({
+          nama: nama,
+          kritikSaran: kritikSaran,
+          rating: rating
+        });
+
+        // Tampilkan pesan terima kasih
+        $(".thank-you-message").html(
+          `<div class="ui positive message">
+            <div class="header">Terima Kasih!</div>
+            <p>Halo <strong>${nama}</strong>, terima kasih atas rating, kritik, dan saran Anda. Kami sangat menghargai waktu Anda untuk memberikan feedback!</p>
+          </div>`
+        ).show();
+
+        // Reset form dan nonaktifkan input
+        $("#ratingForm")[0].reset();
+        $("#rating").rating("clear rating");
+        $("#ratingForm :input").prop("disabled", true);
+        $("#submitBtn").prop("disabled", true);
+        sudahMengisi = true;
+
+        // Tampilkan hasil terbaru
+        tampilkanHasilRating();
+      });
+
+      // Fungsi untuk menampilkan hasil rating
+      function tampilkanHasilRating() {
+        const hasilRatingDiv = $("#hasilRating");
+        hasilRatingDiv.empty();
+
+        ratingRef.on("value", (snapshot) => {
+          hasilRatingDiv.empty();
+          snapshot.forEach((childSnapshot) => {
+            const data = childSnapshot.val();
+            const nama = data.nama || "Tidak Diketahui";
+            const kritikSaran = data.kritikSaran || "Tidak ada kritik/saran";
+            const rating = data.rating || 0;
+
+            hasilRatingDiv.append(`
+              <div class="ui comment">
+                <div class="content">
+                  <span class="author"><strong>➡️Nama:</strong> ${nama}</span>
+                  <div class="metadata">
+                    <span><strong>Rating:</strong> ${rating} ⭐</span>
+                  </div>
+                  <div class="text">
+                    <strong>Kritik/Saran:</strong> ${kritikSaran}
+                  </div>
+                </div>
+              </div>
+            `);
+          });
+        });
+      }
+
+      // Panggil fungsi untuk menampilkan data
+      tampilkanHasilRating();
+
+      // Inisialisasi Semantic UI Rating
+      $("#rating").rating({
+        maxRating: 5
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1 class="ui center aligned header">Rating dan Kritik User</h1>
+
+
+  <form id="ratingForm" class="ui form">
+    <div class="field">
+      <label>Nama:</label>
+      <input type="text" id="nama" placeholder="Masukkan nama Anda" required>
+    </div>
+    <div class="field">
+      <label>Kritik/Saran:</label>
+      <textarea id="kritikSaran" placeholder="Masukkan kritik atau saran Anda" required></textarea>
+    </div>
+    <div class="field">
+      <label>Rating:</label>
+      <div id="rating" class="ui star rating" data-max-rating="5"></div>
+    </div>
+    <button id="submitBtn" class="ui blue button" type="submit">Kirim</button>
+  </form>
+
+
+  <div class="thank-you-message"></div>
+
+
+  <h3 class="ui dividing header">Hasil Rating Pengguna</h3>
+  <div id="hasilRating" class="ui comments">
+    Memuat data...
+  </div>
+</body>
+</html>-->
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rating dan Kritik Untuk Kami</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    body {
+      background: #f9f9f9;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1.ui.header {
+      margin-top: 20px;
+      color: #2c3e50;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    form.ui.form {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: auto;
+    }
+
+    form.ui.form .field label {
+      font-weight: bold;
+      color: #34495e;
+    }
+
+    button.ui.button {
+      background: #3498db;
+      color: #fff;
+    }
+
+    button.ui.button:hover {
+      background: #2980b9;
+    }
+
+    .thank-you-message {
+      margin: 20px auto;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    .thank-you-message .ui.message {
+      background: #eafaf1;
+      color: #2c8b4c;
+    }
+
+    .ui.comments {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .ui.comment {
+      border-bottom: 1px solid #f1f1f1;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .ui.comment:last-child {
+      border-bottom: none;
+    }
+
+    .ui.comment .author {
+      color: #2c3e50;
+      font-weight: bold;
+    }
+
+    .ui.comment .metadata {
+      color: #95a5a6;
+      font-size: 0.9em;
+    }
+
+    .ui.comment .text {
+      color: #7f8c8d;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="ui center aligned header">Rating dan Kritik User</h1>
+
+  <!-- Form untuk mengisi data -->
+  <form id="ratingForm" class="ui form">
+    <div class="field">
+      <label>Nama:</label>
+      <input type="text" id="nama" placeholder="Masukkan nama Anda" required>
+    </div>
+    <div class="field">
+      <label>Kritik/Saran:</label>
+      <textarea id="kritikSaran" placeholder="Masukkan kritik atau saran Anda" required></textarea>
+    </div>
+    <div class="field">
+      <label>Rating:</label>
+      <div id="rating" class="ui star rating" data-max-rating="5"></div>
+    </div>
+    <button id="submitBtn" class="ui blue button" type="submit">Kirim</button>
+  </form>
+
+  <!-- Pesan terima kasih -->
+  <div class="thank-you-message"></div>
+
+  <!-- Bagian untuk menampilkan hasil rating -->
+  <h3 class="ui dividing header">Hasil Rating User</h3>
+  <div id="hasilRating" class="ui comments">
+    Memuat data...
+  </div>
+
+  <script>
+    // Konfigurasi Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNFt-KKG8MpkUDbJphzzY3Ypi1YEyY_FQ",
+      authDomain: "starapp-5a7fc.firebaseapp.com",
+      databaseURL: "https://starapp-5a7fc-default-rtdb.firebaseio.com",
+      projectId: "starapp-5a7fc",
+      storageBucket: "starapp-5a7fc.firebasestorage.app",
+      messagingSenderId: "87823661297",
+      appId: "1:87823661297:web:ac859da096be644f3e1150",
+      measurementId: "G-3HVG82QSZV"
+    };
+
+    // Inisialisasi Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database(app);
+    const ratingRef = database.ref("ratings");
+
+    $(document).ready(function () {
+      const userId = localStorage.getItem("userId") || Date.now(); // ID unik untuk pengguna
+      localStorage.setItem("userId", userId);
+
+      let sudahMengisi = false;
+
+      // Cek apakah pengguna sudah mengisi rating di Firebase
+      ratingRef.child(userId).get().then((snapshot) => {
+        if (snapshot.exists()) {
+          sudahMengisi = true;
+          $("#ratingForm").hide();
+          $(".thank-you-message").html(
+            `<div class="ui positive message">
+              <div class="header">Terima Kasih!</div>
+              <p>Anda sudah memberikan rating sebelumnya.</p>
+            </div>`
+          ).show();
+        }
+      });
+
+      // Fungsi untuk mengirim data ke Firebase
+      $("#submitBtn").click(function (e) {
+        e.preventDefault();
+
+        if (sudahMengisi) {
+          alert("Anda sudah memberikan rating sebelumnya!");
+          return;
+        }
+
+        const nama = $("#nama").val().trim();
+        const kritikSaran = $("#kritikSaran").val().trim();
+        const rating = $("#rating").rating("get rating");
+
+        if (!nama || !kritikSaran || !rating) {
+          alert("Harap lengkapi semua kolom!");
+          return;
+        }
+
+        // Simpan data ke Firebase
+        ratingRef.child(userId).set({
+          nama: nama,
+          kritikSaran: kritikSaran,
+          rating: rating
+        });
+
+        sudahMengisi = true;
+
+        // Tampilkan pesan terima kasih
+        $(".thank-you-message").html(
+          `<div class="ui positive message">
+            <div class="header">Terima Kasih!</div>
+            <p>Halo <strong>${nama}</strong>, terima kasih atas rating, kritik, dan saran Anda. Kami sangat menghargai waktu Anda untuk memberikan feedback!</p>
+          </div>`
+        ).show();
+
+        // Sembunyikan form
+        $("#ratingForm").hide();
+      });
+
+      // Fungsi untuk menampilkan hasil rating
+      function tampilkanHasilRating() {
+        const hasilRatingDiv = $("#hasilRating");
+        hasilRatingDiv.empty();
+
+        ratingRef.on("value", (snapshot) => {
+          hasilRatingDiv.empty();
+          snapshot.forEach((childSnapshot) => {
+            const data = childSnapshot.val();
+            const nama = data.nama || "Tidak Diketahui";
+            const kritikSaran = data.kritikSaran || "Tidak ada kritik/saran";
+            const rating = data.rating || 0;
+
+            hasilRatingDiv.append(`
+              <div class="ui comment">
+                <div class="content">
+                  <span class="author"><strong>➡️Nama:</strong> ${nama}</span>
+                  <div class="metadata">
+                    <span><strong>Rating:</strong> ${rating} ⭐</span>
+                  </div>
+                  <div class="text">
+                    <strong>Kritik/Saran:</strong> ${kritikSaran}
+                  </div>
+                </div>
+              </div>
+            `);
+          });
+        });
+      }
+
+      // Panggil fungsi untuk menampilkan data
+      tampilkanHasilRating();
+
+      // Inisialisasi Semantic UI Rating
+      $("#rating").rating({
+        maxRating: 5
+      });
+    });
+  </script>
+</body>
+</html>
